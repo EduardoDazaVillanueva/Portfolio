@@ -15,6 +15,9 @@ const sizes = {
 // 🔹 Escena
 const scene = new THREE.Scene();
 
+// 🎨 Añadir fog (niebla) para desvanecer el grid
+scene.fog = new THREE.Fog(0xC5DBA7, 10, 60);
+
 // 🔹 Cámara
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -22,11 +25,10 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-camera.position.set(
-0.12042540400058724,
-6.000397745102025, 
--6.429706030250914);
-
+camera.position.set( 
+6.974217127390317,
+9.373796823210638,
+-11.4915514965553);
 scene.add(camera);
 
 // 🔹 Renderizador
@@ -36,7 +38,6 @@ const renderer = new THREE.WebGLRenderer({
 });
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-// Configuración PBR realista
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
@@ -45,10 +46,15 @@ renderer.toneMappingExposure = 1.2;
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.target.set(
-0.0017785926382591817,
-0.7583084101017751,
-0.7077098455815504);
+controls.target.set(-0.08685893376202979,
+2.576360315368435,
+2.3361640670660813);
+
+// 🔹 Registrar posición cada vez que se mueve la cámara
+controls.addEventListener('change', () => {
+  console.log('📍 Cámara:', camera.position);
+  console.log('🎯 Target:', controls.target);
+});
 
 // 🔹 Cargadores
 const dracoLoader = new DRACOLoader();
@@ -61,16 +67,34 @@ gltfLoader.setDRACOLoader(dracoLoader);
 const rgbeLoader = new RGBELoader();
 rgbeLoader.load('/hdri/brown_photostudio_02_4k.hdr', (texture) => {
   texture.mapping = THREE.EquirectangularReflectionMapping;
-  scene.environment = texture;      // Iluminación PBR
+  scene.environment = texture;
+  scene.background = new THREE.Color(0xC5DBA7); // Fondo
 });
 
-// 🔹 Luces adicionales (por si el HDRI no es suficiente)
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
-scene.add(ambientLight);
+// 🔹 Añadir suelo con grid tipo Blender
+{
+  // Plano invisible que da base
+  const groundGeometry = new THREE.PlaneGeometry(200, 200);
+  const groundMaterial = new THREE.MeshStandardMaterial({
+    color: 0xC5DBA7,
+    transparent: true,
+    opacity: 0.0, // completamente invisible
+    roughness: 1,
+    metalness: 0,
+  });
+  const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = 0;
+  ground.receiveShadow = true;
+  scene.add(ground);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 2);
-dirLight.position.set(5, 10, 7);
-scene.add(dirLight);
+  // Grid Helper visible
+  const grid = new THREE.GridHelper(200, 200, 0x8C8C7A, 0xA0A084);
+  grid.material.opacity = 0.35;
+  grid.material.transparent = true;
+  grid.position.y = 0.001; // evitar z-fighting
+  scene.add(grid);
+}
 
 // 🔹 Cargar el modelo principal
 gltfLoader.load(
@@ -104,8 +128,6 @@ window.addEventListener('resize', () => {
 // 🔹 Animación / Render Loop
 const render = () => {
   controls.update();
-
-
   renderer.render(scene, camera);
   window.requestAnimationFrame(render);
 };
