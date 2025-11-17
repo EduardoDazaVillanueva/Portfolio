@@ -109,7 +109,7 @@ let model;
 let scheibeObject = null;
 
 gltfLoader.load(
-  '/models/isla-v1.glb',
+  '/models/islaPlus-v1.glb',
   (glb) => {
     model = glb.scene;
     scene.add(model);
