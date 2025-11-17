@@ -10,7 +10,7 @@ const canvas = document.querySelector('#experience-canvas');
 const sizes = { width: window.innerWidth, height: window.innerHeight };
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xC5DBA7, 10, 60);
+scene.fog = new THREE.Fog(0x306692, 10, 60);
 
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000);
 camera.position.set(0.0577, 12.7105, -12.0805);
@@ -37,6 +37,12 @@ const initialMaxDistance = 30;
 controls.minDistance = initialMinDistance;
 controls.maxDistance = initialMaxDistance;
 
+controls.mouseButtons = {
+  LEFT: THREE.MOUSE.ROTATE,
+  MIDDLE: THREE.MOUSE.DOLLY,
+  RIGHT: null
+};
+
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('/draco/');
 const gltfLoader = new GLTFLoader();
@@ -46,12 +52,12 @@ const rgbeLoader = new RGBELoader();
 rgbeLoader.load('/hdri/brown_photostudio_02_4k.hdr', (texture) => {
   texture.mapping = THREE.EquirectangularReflectionMapping;
   scene.environment = texture;
-  scene.background = new THREE.Color(0xC5DBA7);
+  scene.background = new THREE.Color(0x306692);
 });
 
 {
   const groundGeometry = new THREE.PlaneGeometry(200, 200);
-  const groundMaterial = new THREE.MeshStandardMaterial({ color: 0xC5DBA7, transparent: true, opacity: 0.0 });
+  const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x306692, transparent: true, opacity: 0.0 });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
@@ -68,7 +74,7 @@ loadingScreen.style.top = '0';
 loadingScreen.style.left = '0';
 loadingScreen.style.width = '100%';
 loadingScreen.style.height = '100%';
-loadingScreen.style.backgroundColor = '#C5DBA7';
+loadingScreen.style.backgroundColor = '#306692';
 loadingScreen.style.display = 'flex';
 loadingScreen.style.flexDirection = 'column';
 loadingScreen.style.alignItems = 'center';
@@ -196,9 +202,9 @@ arcadeButton.style.left = '50%';
 arcadeButton.style.transform = 'translateX(-50%)';
 arcadeButton.style.padding = '12px 24px';
 arcadeButton.style.fontSize = '16px';
-arcadeButton.style.background = 'rgba(32, 58, 172, 0.7)';
+arcadeButton.style.background = 'rgba(85, 81, 75, .7)';
 arcadeButton.style.color = 'white';
-arcadeButton.style.border = '3px solid white';
+arcadeButton.style.border = '2px solid white';
 arcadeButton.style.borderRadius = '8px';
 arcadeButton.style.cursor = 'pointer';
 arcadeButton.style.zIndex = '25';
@@ -210,14 +216,14 @@ document.body.appendChild(arcadeButton);
 arcadeButton.addEventListener('mouseenter', () => {
   gsap.to(arcadeButton.style, {
     duration: 0.3,
-    background: 'rgba(32, 58, 172, 1)',
+    background: 'rgba(85, 81, 75, 1)',
   });
 });
 
 arcadeButton.addEventListener('mouseleave', () => {
   gsap.to(arcadeButton.style, {
     duration: 0.3,
-    background: 'rgba(32, 58, 172, 0.7)',
+    background: 'rgba(85, 81, 75, .7)',
   });
 });
 
