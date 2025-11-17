@@ -71,7 +71,7 @@ gltfLoader.load('/models/isla-v1.glb', (glb) => {
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-
+// IFRAME
 const iframeWrapper = document.createElement('div');
 iframeWrapper.style.position = 'fixed';
 iframeWrapper.style.left = '50%';
@@ -86,20 +86,66 @@ document.body.appendChild(iframeWrapper);
 const iframe = document.createElement('iframe');
 iframe.src = 'https://pcportfolio-eduardodaza.netlify.app/';
 iframe.style.width = '800px';
-iframe.style.height = '900px';
+iframe.style.height = '850px';
 iframe.style.border = 'none';
 iframe.style.borderRadius = '12px';
 iframe.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
+iframe.style.transformOrigin = 'center center';
 iframeWrapper.appendChild(iframe);
 
-function updateIframeScale() {
-  const dpr = window.devicePixelRatio;
-  iframe.style.transform = `scale(${1 / dpr})`;
+// BOTÓN DE CIERRE ABAJO
+const closeButton = document.createElement('button');
+closeButton.textContent = 'Cerrar';
+closeButton.style.position = 'fixed';
+closeButton.style.bottom = '40px';
+closeButton.style.left = '50%';
+closeButton.style.transform = 'translateX(-50%)';
+closeButton.style.padding = '12px 24px';
+closeButton.style.fontSize = '16px';
+closeButton.style.background = 'rgba(0,0,0,1)';
+closeButton.style.color = 'white';
+closeButton.style.border = 'none';
+closeButton.style.borderRadius = '8px';
+closeButton.style.cursor = 'pointer';
+closeButton.style.zIndex = '25';
+closeButton.style.opacity = '0';
+closeButton.style.transition = 'opacity 0.4s ease';
+closeButton.style.display = 'none';
+document.body.appendChild(closeButton);
+
+function closeIframe() {
+  iframeWrapper.style.opacity = '0';
+  iframeWrapper.style.transform = 'translate(-50%, -50%) scale(0.9)';
+  setTimeout(() => iframeWrapper.style.display = 'none', 300);
+
+  closeButton.style.opacity = '0';
+  setTimeout(() => closeButton.style.display = 'none', 300);
+
+  gsap.to(camera.position, {
+    duration: 2,
+    x: initialCameraPos.x,
+    y: initialCameraPos.y,
+    z: initialCameraPos.z,
+    ease: "power2.inOut"
+  });
+
+  gsap.to(controls.target, {
+    duration: 2,
+    x: initialTarget.x,
+    y: initialTarget.y,
+    z: initialTarget.z,
+    ease: "power2.inOut",
+    onUpdate: () => controls.update(),
+    onComplete: () => controls.enabled = true
+  });
+
+  setTimeout(() => {
+    controls.minDistance = initialMinDistance;
+    controls.maxDistance = initialMaxDistance;
+  }, 1000);
 }
-updateIframeScale();
-window.addEventListener('resize', updateIframeScale);
 
-
+// CLICK EN SCHEIBE
 window.addEventListener('click', (event) => {
   if (!model) return;
 
@@ -112,7 +158,6 @@ window.addEventListener('click', (event) => {
 
   if (object) {
     controls.enabled = false;
-
     controls.minDistance = 0;
     controls.maxDistance = Infinity;
 
@@ -140,46 +185,29 @@ window.addEventListener('click', (event) => {
           iframeWrapper.style.opacity = '1';
           iframeWrapper.style.transform = 'translate(-50%, -50%) scale(1)';
         }, 10);
+
+        closeButton.style.display = 'block';
+        setTimeout(() => {
+          closeButton.style.opacity = '1';
+        }, 10);
       }
     });
   }
 });
 
-
+// ESC para cerrar iframe
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && iframeWrapper.style.display === 'block') {
-
-    iframeWrapper.style.opacity = '0';
-    iframeWrapper.style.transform = 'translate(-50%, -50%) scale(0.9)';
-    setTimeout(() => {
-      iframeWrapper.style.display = 'none';
-    }, 300);
-
-    gsap.to(camera.position, {
-      duration: 2,
-      x: initialCameraPos.x,
-      y: initialCameraPos.y,
-      z: initialCameraPos.z,
-      ease: "power2.inOut"
-    });
-
-    gsap.to(controls.target, {
-      duration: 2,
-      x: initialTarget.x,
-      y: initialTarget.y,
-      z: initialTarget.z,
-      ease: "power2.inOut",
-      onUpdate: () => controls.update(),
-      onComplete: () => (controls.enabled = true)
-    });
-
-    setTimeout(() => {
-      controls.minDistance = initialMinDistance;
-      controls.maxDistance = initialMaxDistance;
-    }, 1000);
+    closeIframe();
   }
 });
 
+// BOTÓN cerrar
+closeButton.addEventListener('click', () => {
+  closeIframe();
+});
+
+// Resize
 window.addEventListener('resize', () => {
   sizes.width = window.innerWidth;
   sizes.height = window.innerHeight;
@@ -188,6 +216,7 @@ window.addEventListener('resize', () => {
   renderer.setSize(sizes.width, sizes.height);
 });
 
+// Render loop
 const render = () => {
   controls.update();
   renderer.render(scene, camera);
