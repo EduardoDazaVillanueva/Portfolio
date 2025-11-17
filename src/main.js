@@ -49,7 +49,6 @@ rgbeLoader.load('/hdri/brown_photostudio_02_4k.hdr', (texture) => {
   scene.background = new THREE.Color(0xC5DBA7);
 });
 
-// Suelo y grid
 {
   const groundGeometry = new THREE.PlaneGeometry(200, 200);
   const groundMaterial = new THREE.MeshStandardMaterial({ color: 0xC5DBA7, transparent: true, opacity: 0.0 });
@@ -63,7 +62,6 @@ rgbeLoader.load('/hdri/brown_photostudio_02_4k.hdr', (texture) => {
   scene.add(grid);
 }
 
-// PANTALLA DE CARGA CON BARRA
 const loadingScreen = document.createElement('div');
 loadingScreen.style.position = 'fixed';
 loadingScreen.style.top = '0';
@@ -101,34 +99,55 @@ progressBar.style.background = 'rgba(0,0,0,0.7)';
 progressBar.style.borderRadius = '10px';
 progressBarContainer.appendChild(progressBar);
 
-// CARGA DEL MODELO
 let model;
+let scheibeObject = null;
+
 gltfLoader.load(
   '/models/isla-v1.glb',
   (glb) => {
     model = glb.scene;
     scene.add(model);
 
-    // OCULTAR PANTALLA DE CARGA
+    // Buscar objeto scheibe
+    scheibeObject = model.getObjectByName('scheibe');
+
+    // Si existe, empezar parpadeo
+    if (scheibeObject && scheibeObject.material) {
+      const mat = scheibeObject.material;
+      const pulse = () => {
+        gsap.to(mat, {
+          duration: 0.8,
+          emissiveIntensity: 1,
+          yoyo: true,
+          repeat: 1,
+          ease: "sine.inOut",
+          onComplete: () => {
+            setTimeout(pulse, 2000);
+          }
+        });
+      };
+      pulse();
+    }
+
     loadingScreen.style.opacity = '0';
     setTimeout(() => loadingScreen.style.display = 'none', 500);
+
+    // mostrar botón arcade al inicio
+    arcadeButton.style.display = 'block';
+    setTimeout(() => arcadeButton.style.opacity = '1', 10);
   },
   (xhr) => {
-    // Actualizar barra de progreso
     if (xhr.total) {
       const percent = ((xhr.loaded / xhr.total) * 100).toFixed(0);
       progressBar.style.width = percent + '%';
     }
   },
-  (error) => {
-    console.error('Error al cargar el modelo', error);
-  }
+  (error) => console.error('Error al cargar el modelo', error)
 );
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// IFRAME
 const iframeWrapper = document.createElement('div');
 iframeWrapper.style.position = 'fixed';
 iframeWrapper.style.left = '50%';
@@ -150,7 +169,6 @@ iframe.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
 iframe.style.transformOrigin = 'center center';
 iframeWrapper.appendChild(iframe);
 
-// BOTÓN DE CIERRE
 const closeButton = document.createElement('button');
 closeButton.textContent = 'Cerrar';
 closeButton.style.position = 'fixed';
@@ -169,6 +187,100 @@ closeButton.style.opacity = '0';
 closeButton.style.transition = 'opacity 0.4s ease';
 closeButton.style.display = 'none';
 document.body.appendChild(closeButton);
+
+const arcadeButton = document.createElement('button');
+arcadeButton.textContent = 'Máquina Arcade';
+arcadeButton.style.position = 'fixed';
+arcadeButton.style.bottom = '40px';
+arcadeButton.style.left = '50%';
+arcadeButton.style.transform = 'translateX(-50%)';
+arcadeButton.style.padding = '12px 24px';
+arcadeButton.style.fontSize = '16px';
+arcadeButton.style.background = 'rgba(32, 58, 172, 0.7)';
+arcadeButton.style.color = 'white';
+arcadeButton.style.border = '3px solid white';
+arcadeButton.style.borderRadius = '8px';
+arcadeButton.style.cursor = 'pointer';
+arcadeButton.style.zIndex = '25';
+arcadeButton.style.opacity = '0';
+arcadeButton.style.transition = 'opacity 0.4s ease';
+arcadeButton.style.display = 'none';
+document.body.appendChild(arcadeButton);
+
+arcadeButton.addEventListener('mouseenter', () => {
+  gsap.to(arcadeButton.style, {
+    duration: 0.3,
+    background: 'rgba(32, 58, 172, 1)',
+  });
+});
+
+arcadeButton.addEventListener('mouseleave', () => {
+  gsap.to(arcadeButton.style, {
+    duration: 0.3,
+    background: 'rgba(32, 58, 172, 0.7)',
+  });
+});
+
+arcadeButton.addEventListener('click', () => {
+  if (scheibeObject) moveCameraToScheibe();
+});
+
+function moveCameraToScheibe() {
+  if (!scheibeObject) return;
+
+  controls.enabled = false;
+  controls.minDistance = 0;
+  controls.maxDistance = Infinity;
+
+  const camPos = { x: 0.0763, y: 6.4343, z: -0.5689 };
+  const targetPos = { x: 0.0663, y: 3.1455, z: 2.6322 };
+
+  gsap.to(camera.position, {
+    duration: 2,
+    x: camPos.x,
+    y: camPos.y,
+    z: camPos.z,
+    ease: "power2.inOut"
+  });
+
+  gsap.to(controls.target, {
+    duration: 2,
+    x: targetPos.x,
+    y: targetPos.y,
+    z: targetPos.z,
+    ease: "power2.inOut",
+    onUpdate: () => controls.update(),
+    onComplete: () => {
+      iframeWrapper.style.display = 'block';
+      setTimeout(() => {
+        iframeWrapper.style.opacity = '1';
+        iframeWrapper.style.transform = 'translate(-50%, -50%) scale(1)';
+      }, 10);
+
+      closeButton.style.display = 'block';
+      setTimeout(() => closeButton.style.opacity = '1', 10);
+
+      arcadeButton.style.opacity = '0';
+      setTimeout(() => arcadeButton.style.display = 'none', 400);
+    }
+  });
+}
+
+window.addEventListener('click', (event) => {
+  if (!model) return;
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(model.children, true);
+  const object = intersects.find(i => i.object.name === 'scheibe')?.object;
+
+  if (object) {
+    scheibeObject = object;
+    moveCameraToScheibe();
+  }
+});
 
 function closeIframe() {
   iframeWrapper.style.opacity = '0';
@@ -193,7 +305,14 @@ function closeIframe() {
     z: initialTarget.z,
     ease: "power2.inOut",
     onUpdate: () => controls.update(),
-    onComplete: () => controls.enabled = true
+    onComplete: () => {
+      controls.enabled = true;
+
+      arcadeButton.style.display = 'block';
+      setTimeout(() => {
+        arcadeButton.style.opacity = '1';
+      }, 10);
+    }
   });
 
   setTimeout(() => {
@@ -201,54 +320,6 @@ function closeIframe() {
     controls.maxDistance = initialMaxDistance;
   }, 1000);
 }
-
-// CLICK EN SCHEIBE
-window.addEventListener('click', (event) => {
-  if (!model) return;
-
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(model.children, true);
-  const object = intersects.find(i => i.object.name === 'scheibe')?.object;
-
-  if (object) {
-    controls.enabled = false;
-    controls.minDistance = 0;
-    controls.maxDistance = Infinity;
-
-    const camPos = { x: 0.0763, y: 6.4343, z: -0.5689 };
-    const targetPos = { x: 0.0663, y: 3.1455, z: 2.6322 };
-
-    gsap.to(camera.position, {
-      duration: 2,
-      x: camPos.x,
-      y: camPos.y,
-      z: camPos.z,
-      ease: "power2.inOut"
-    });
-
-    gsap.to(controls.target, {
-      duration: 2,
-      x: targetPos.x,
-      y: targetPos.y,
-      z: targetPos.z,
-      ease: "power2.inOut",
-      onUpdate: () => controls.update(),
-      onComplete: () => {
-        iframeWrapper.style.display = 'block';
-        setTimeout(() => {
-          iframeWrapper.style.opacity = '1';
-          iframeWrapper.style.transform = 'translate(-50%, -50%) scale(1)';
-        }, 10);
-
-        closeButton.style.display = 'block';
-        setTimeout(() => closeButton.style.opacity = '1', 10);
-      }
-    });
-  }
-});
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && iframeWrapper.style.display === 'block') {
