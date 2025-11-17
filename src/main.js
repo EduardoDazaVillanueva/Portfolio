@@ -49,6 +49,7 @@ rgbeLoader.load('/hdri/brown_photostudio_02_4k.hdr', (texture) => {
   scene.background = new THREE.Color(0xC5DBA7);
 });
 
+// Suelo y grid
 {
   const groundGeometry = new THREE.PlaneGeometry(200, 200);
   const groundMaterial = new THREE.MeshStandardMaterial({ color: 0xC5DBA7, transparent: true, opacity: 0.0 });
@@ -62,11 +63,67 @@ rgbeLoader.load('/hdri/brown_photostudio_02_4k.hdr', (texture) => {
   scene.add(grid);
 }
 
+// PANTALLA DE CARGA CON BARRA
+const loadingScreen = document.createElement('div');
+loadingScreen.style.position = 'fixed';
+loadingScreen.style.top = '0';
+loadingScreen.style.left = '0';
+loadingScreen.style.width = '100%';
+loadingScreen.style.height = '100%';
+loadingScreen.style.backgroundColor = '#C5DBA7';
+loadingScreen.style.display = 'flex';
+loadingScreen.style.flexDirection = 'column';
+loadingScreen.style.alignItems = 'center';
+loadingScreen.style.justifyContent = 'center';
+loadingScreen.style.fontSize = '24px';
+loadingScreen.style.fontWeight = 'bold';
+loadingScreen.style.color = 'rgba(0,0,0,0.7)';
+loadingScreen.style.zIndex = '100';
+document.body.appendChild(loadingScreen);
+
+const loadingText = document.createElement('div');
+loadingText.textContent = 'Cargando...';
+loadingText.style.marginBottom = '20px';
+loadingScreen.appendChild(loadingText);
+
+const progressBarContainer = document.createElement('div');
+progressBarContainer.style.width = '60%';
+progressBarContainer.style.height = '20px';
+progressBarContainer.style.background = 'rgba(0,0,0,0.2)';
+progressBarContainer.style.borderRadius = '10px';
+progressBarContainer.style.overflow = 'hidden';
+loadingScreen.appendChild(progressBarContainer);
+
+const progressBar = document.createElement('div');
+progressBar.style.width = '0%';
+progressBar.style.height = '100%';
+progressBar.style.background = 'rgba(0,0,0,0.7)';
+progressBar.style.borderRadius = '10px';
+progressBarContainer.appendChild(progressBar);
+
+// CARGA DEL MODELO
 let model;
-gltfLoader.load('/models/isla-v1.glb', (glb) => {
-  model = glb.scene;
-  scene.add(model);
-});
+gltfLoader.load(
+  '/models/isla-v1.glb',
+  (glb) => {
+    model = glb.scene;
+    scene.add(model);
+
+    // OCULTAR PANTALLA DE CARGA
+    loadingScreen.style.opacity = '0';
+    setTimeout(() => loadingScreen.style.display = 'none', 500);
+  },
+  (xhr) => {
+    // Actualizar barra de progreso
+    if (xhr.total) {
+      const percent = ((xhr.loaded / xhr.total) * 100).toFixed(0);
+      progressBar.style.width = percent + '%';
+    }
+  },
+  (error) => {
+    console.error('Error al cargar el modelo', error);
+  }
+);
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -93,7 +150,7 @@ iframe.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
 iframe.style.transformOrigin = 'center center';
 iframeWrapper.appendChild(iframe);
 
-// BOTÓN DE CIERRE ABAJO
+// BOTÓN DE CIERRE
 const closeButton = document.createElement('button');
 closeButton.textContent = 'Cerrar';
 closeButton.style.position = 'fixed';
@@ -187,27 +244,20 @@ window.addEventListener('click', (event) => {
         }, 10);
 
         closeButton.style.display = 'block';
-        setTimeout(() => {
-          closeButton.style.opacity = '1';
-        }, 10);
+        setTimeout(() => closeButton.style.opacity = '1', 10);
       }
     });
   }
 });
 
-// ESC para cerrar iframe
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && iframeWrapper.style.display === 'block') {
     closeIframe();
   }
 });
 
-// BOTÓN cerrar
-closeButton.addEventListener('click', () => {
-  closeIframe();
-});
+closeButton.addEventListener('click', closeIframe);
 
-// Resize
 window.addEventListener('resize', () => {
   sizes.width = window.innerWidth;
   sizes.height = window.innerHeight;
@@ -216,7 +266,6 @@ window.addEventListener('resize', () => {
   renderer.setSize(sizes.width, sizes.height);
 });
 
-// Render loop
 const render = () => {
   controls.update();
   renderer.render(scene, camera);
